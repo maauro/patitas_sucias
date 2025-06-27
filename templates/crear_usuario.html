@@ -1,0 +1,77 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<h2 class="mb-4">Crear Usuario</h2>
+<div class="card shadow-sm p-4" style="max-width: 500px;">
+  <form method="POST" onsubmit="return validarPasswords();">
+    <div class="mb-3">
+      <label for="nombre" class="form-label">Nombre</label>
+      <input type="text" name="nombre" id="nombre" class="form-control" placeholder="Ej: Juan" required>
+    </div>
+    <div class="mb-3">
+      <label for="apellido" class="form-label">Apellido</label>
+      <input type="text" name="apellido" id="apellido" class="form-control" placeholder="Ej: Perez" required>
+    </div>
+    <div class="mb-3">
+      <label for="password" class="form-label">Password</label>
+      <div class="input-group">
+        <input type="password" name="password" id="password" class="form-control" placeholder="Ingrese password" required>
+        <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('password', this)">
+          <i class="bi bi-eye"></i>
+        </button>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label for="reingresar_password" class="form-label">Reingresar Password</label>
+      <div class="input-group">
+        <input type="password" name="reingresar_password" id="reingresar_password" class="form-control" placeholder="Reingrese password" required>
+        <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('reingresar_password', this)">
+          <i class="bi bi-eye"></i>
+        </button>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label for="rol" class="form-label">Rol</label>
+      <select class="form-select" id="rol" name="rol" required>
+        <option value="">Seleccione un rol</option>
+        <option value="1">Admin</option>
+        <option value="2">Vendedor</option>
+      </select>
+    </div>
+    <button class="btn btn-success w-100">Crear Usuario</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Muestra/oculta el contenido de un input password y cambia el icono
+  function togglePassword(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+      input.type = 'password';
+      icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+  }
+
+  // Opcional: valida que ambas contraseñas coincidan antes de enviar
+  function validarPasswords() {
+    const p1 = document.getElementById('password').value;
+    const p2 = document.getElementById('reingresar_password').value;
+    if (p1 !== p2) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Las contraseñas no coinciden.',
+        confirmButtonText: 'Entendido'
+      });
+      return false;
+    }
+    return true;
+  }
+</script>
+{% endblock %}

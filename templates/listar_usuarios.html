@@ -1,0 +1,240 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<h2 class="mb-4">Listado de Usuarios</h2>
+<div class="table-responsive">
+  <table class="table table-hover table-bordered shadow-sm rounded">
+    <thead class="table-dark">
+      <tr>
+        <th>ID</th>
+        <th>Username</th>
+        <th>Nombre</th>
+        <th>Apellido</th>
+        <th>Rol</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in usuarios %}
+      <tr>
+        <td>{{ u.id }}</td>
+        <td>{{ u.username }}</td>
+        <td>{{ u.nombre }}</td>
+        <td>{{ u.apellido }}</td>
+        <td>
+          {% if u.rol_id == 1 %}Admin{% else %}Vendedor{% endif %}
+        </td>
+        <td>
+          {% if u.username == 'admin' %}
+            <button class="btn btn-warning btn-sm" disabled>
+              <i class="bi bi-pencil-fill"></i>
+            </button>
+            <button class="btn btn-danger btn-sm" disabled>
+              <i class="bi bi-trash-fill"></i>
+            </button>
+          {% else %}
+            <!-- Editar abre modal directamente -->
+            <button
+              type="button"
+              class="btn btn-warning btn-sm text-white"
+              data-bs-toggle="modal"
+              data-bs-target="#modalEditar{{ u.id }}"
+              title="Editar usuario"
+            >
+              <i class="bi bi-pencil-fill"></i>
+            </button>
+
+            <!-- Formulario oculto para eliminar -->
+            <form
+              id="delete-form-{{ u.id }}"
+              action="{{ url_for('eliminar_usuario', id=u.id) }}"
+              method="post"
+              style="display: none;"
+            ></form>
+            <button
+              type="button"
+              class="btn btn-danger btn-sm text-white"
+              onclick="confirmDelete({{ u.id }})"
+              title="Eliminar usuario"
+            >
+              <i class="bi bi-trash-fill"></i>
+            </button>
+          {% endif %}
+        </td>
+      </tr>
+
+      <!-- Modal de edición para el usuario -->
+      <div
+        class="modal fade"
+        id="modalEditar{{ u.id }}"
+        tabindex="-1"
+        aria-labelledby="modalEditarLabel{{ u.id }}"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <form
+              method="POST"
+              action="{{ url_for('editar_usuario', id=u.id) }}"
+              onsubmit="return validarPasswordsEdit({{ u.id }});"
+            >
+              <div class="modal-header">
+                <h5 class="modal-title" id="modalEditarLabel{{ u.id }}">Editar Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label for="nombre{{ u.id }}" class="form-label">Nombre</label>
+                  <input
+                    type="text"
+                    name="nombre"
+                    class="form-control"
+                    id="nombre{{ u.id }}"
+                    value="{{ u.nombre }}"
+                    required
+                    oninput="updateUsername('{{ u.id }}')"
+                  >
+                </div>
+                <div class="mb-3">
+                  <label for="apellido{{ u.id }}" class="form-label">Apellido</label>
+                  <input
+                    type="text"
+                    name="apellido"
+                    class="form-control"
+                    id="apellido{{ u.id }}"
+                    value="{{ u.apellido }}"
+                    required
+                    oninput="updateUsername('{{ u.id }}')"
+                  >
+                </div>
+                <div class="mb-3">
+                  <label for="username{{ u.id }}" class="form-label">Username</label>
+                  <input
+                    type="text"
+                    name="username"
+                    class="form-control"
+                    id="username{{ u.id }}"
+                    value="{{ u.username }}"
+                    readonly
+                  >
+                </div>
+                <div class="mb-3">
+                  <label for="password{{ u.id }}" class="form-label">Nueva Password</label>
+                  <div class="input-group">
+                    <input
+                      type="password"
+                      name="password"
+                      class="form-control"
+                      id="password{{ u.id }}"
+                      value="{{u.password}}"
+                      placeholder="Ingrese nueva contraseña"
+                      required
+                    >
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary"
+                      onclick="togglePassword('password{{ u.id }}', this)"
+                    >
+                      <i class="bi bi-eye"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label for="reingresar_password{{ u.id }}" class="form-label">Reingresar Password</label>
+                  <div class="input-group">
+                    <input
+                      type="password"
+                      name="reingresar_password"
+                      class="form-control"
+                      id="reingresar_password{{ u.id }}"
+                      placeholder="Reingrese contraseña"
+                      value="{{u.password}}"
+                      required
+                    >
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary"
+                      onclick="togglePassword('reingresar_password{{ u.id }}', this)"
+                    >
+                      <i class="bi bi-eye"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label for="rol{{ u.id }}" class="form-label">Rol</label>
+                  <select
+                    name="rol"
+                    id="rol{{ u.id }}"
+                    class="form-select"
+                    required
+                  >
+                    <option value="1" {% if u.rol_id == 1 %}selected{% endif %}>Administrador</option>
+                    <option value="2" {% if u.rol_id == 2 %}selected{% endif %}>Vendedor</option>
+                  </select>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Alterna visibilidad y cambia el icono del input password
+  function togglePassword(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+      input.type = 'password';
+      icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+  }
+
+  // Valida que passwords coincidan antes de enviar edición
+  function validarPasswordsEdit(id) {
+    const p1 = document.getElementById('password' + id).value;
+    const p2 = document.getElementById('reingresar_password' + id).value;
+    if (p1 !== p2) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Las contraseñas no coinciden.',
+        confirmButtonText: 'Entendido'
+      });
+      return false;
+    }
+    return true;
+  }
+
+  // Confirmación SweetAlert para eliminar
+  function confirmDelete(id) {
+    Swal.fire({
+      title: '¿Eliminar este usuario?',
+      text: '¡Esta acción no se puede deshacer!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        document.getElementById('delete-form-' + id).submit();
+      }
+    });
+  }
+</script>
+{% endblock %}

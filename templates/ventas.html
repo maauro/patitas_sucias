@@ -1,0 +1,238 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container my-4">
+  <!-- Título principal -->
+  <h2 class="mb-4 text-center">Generar Venta</h2>
+  
+  <!-- Tarjeta de formulario para generar la venta -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <form id="ventaForm" method="POST" class="row g-3" onsubmit="return false;">
+        <!-- Código de Barra -->
+        <div class="col-md-4">
+          <label for="venta_codigo" class="form-label fw-bold">Código de Barra</label>
+          <input type="text" id="venta_codigo" name="codigo" 
+                 class="form-control form-control-sm" style="max-width: 180px;"
+                 placeholder="Código..." required autofocus>
+        </div>
+        
+        <!-- Fecha bloqueada (solo lectura) -->
+        <div class="col-md-4">
+          <label for="venta_fecha" class="form-label fw-bold">Fecha</label>
+          <input type="text" id="venta_fecha" class="form-control form-control-sm" 
+                 value="{{ now().strftime('%Y-%m-%d') }}" readonly>
+        </div>
+        
+        <!-- Campo oculto para la cantidad -->
+        <input type="hidden" id="venta_cantidad" name="cantidad" value="1">
+        <!-- Acción a realizar -->
+        <input type="hidden" name="action" value="agregar">
+        
+        <!-- Botón para abrir modal del teclado numérico -->
+        <div class="col-md-4 d-flex align-items-end justify-content-end">
+          <button type="button" class="btn btn-success" onclick="abrirModal()">
+            Agregar Producto
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Carrito de Venta -->
+  {% if carrito %}
+  <div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">Carrito de Venta</h5>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-bordered table-striped align-middle">
+          <thead class="table-secondary">
+            <tr>
+              <th class="text-center">#</th>
+              <th class="text-center">Código</th>
+              <th class="text-center">Nombre</th>
+              <th class="text-center">Cantidad</th>
+              <th class="text-center">Precio</th>
+              <th class="text-center">Subtotal</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in carrito %}
+              {% set total = total + item.subtotal %}
+              <tr>
+                <td class="text-center">{{ loop.index }}</td>
+                <td class="text-center">{{ item.codigo }}</td>
+                <td>{{ item.nombre }}</td>
+                <td class="text-center">{{ item.cantidad }}</td>
+                <td class="text-end">${{ item.precio|formato_precio }}</td>
+                <td class="text-end">${{ item.subtotal|formato_precio }}</td>
+                <td class="text-center">
+                  <div class="d-flex justify-content-center gap-1">
+                    <form method="POST" action="/eliminar_del_carrito/{{ item.codigo }}">
+                      <button type="submit" class="btn btn-sm btn-danger" title="Disminuir cantidad">
+                        <i class="bi bi-dash"></i>
+                      </button>
+                    </form>
+                    <form method="POST" action="/agregar_al_carrito/{{ item.codigo }}">
+                      <button type="submit" class="btn btn-sm btn-info" title="Aumentar cantidad">
+                        <i class="bi bi-plus"></i>
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+            <tr class="fw-bold">
+              <td colspan="5" class="text-end">Total</td>
+              <td class="text-end">${{ total|formato_precio }}</td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="d-flex justify-content-end gap-2 mt-2">
+        <form method="POST">
+          <input type="hidden" name="action" value="finalizar">
+          <button type="submit" class="btn btn-primary">Finalizar Venta</button>
+        </form>
+        <form method="POST" action="/vaciar_carrito">
+          <button type="submit" class="btn btn-outline-danger">Vaciar Carrito</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% else %}
+    <div class="alert alert-info text-center mt-3">No hay productos agregados aún.</div>
+  {% endif %}
+</div>
+
+<!-- Modal: Teclado numérico estilo calculadora -->
+<div class="modal fade" id="cantidadModal" tabindex="-1" aria-labelledby="cantidadModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="cantidadModalLabel">Seleccione Cantidad</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-center mb-3">
+          <h2 id="cantidadDisplay">0</h2>
+        </div>
+        <div class="container">
+          <!-- Fila 1: 1, 2, 3 -->
+          <div class="row">
+            <div class="col-4 p-1">
+              <button type="button" class="btn btn-outline-primary w-100" onclick="appendNumber('1')">1</button>
+            </div>
+            <div class="col-4 p-1">
+              <button type="button" class="btn btn-outline-primary w-100" onclick="appendNumber('2')">2</button>
+            </div>
+            <div class="col-4 p-1">
+              <button type="button" class="btn btn-outline-primary w-100" onclick="appendNumber('3')">3</button>
+            </div>
+          </div>
+          <!-- Fila 2: 4, 5, 6 -->
+          <div class="row">
+            <div class="col-4 p-1">
+              <button type="button" class="btn btn-outline-primary w-100" onclick="appendNumber('4')">4</button>
+            </div>
+            <div class="col-4 p-1">
+              <button type="button" class="btn btn-outline-primary w-100" onclick="appendNumber('5')">5</button>
+            </div>
+            <div class="col-4 p-1">
+              <button type="button" class="btn btn-outline-primary w-100" onclick="appendNumber('6')">6</button>
+            </div>
+          </div>
+          <!-- Fila 3: 7, 8, 9 -->
+          <div class="row">
+            <div class="col-4 p-1">
+              <button type="button" class="btn btn-outline-primary w-100" onclick="appendNumber('7')">7</button>
+            </div>
+            <div class="col-4 p-1">
+              <button type="button" class="btn btn-outline-primary w-100" onclick="appendNumber('8')">8</button>
+            </div>
+            <div class="col-4 p-1">
+              <button type="button" class="btn btn-outline-primary w-100" onclick="appendNumber('9')">9</button>
+            </div>
+          </div>
+          <!-- Fila 4: Espacio, 0, Espacio -->
+          <div class="row">
+            <div class="col-4 p-1"></div>
+            <div class="col-4 p-1">
+              <button type="button" class="btn btn-outline-primary w-100" onclick="appendNumber('0')">0</button>
+            </div>
+            <div class="col-4 p-1"></div>
+          </div>
+          <!-- Fila 5: Botón Borrar -->
+          <div class="row">
+            <div class="col-12 p-1">
+              <button type="button" class="btn btn-outline-secondary w-100" onclick="clearDisplay()">Borrar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="confirmarCantidad()">Agregar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts para el modal -->
+<script>
+  // Variables globales
+  let cantidadStr = "";
+  let cantidadModalInstance = null;
+
+  // Al cargar la página, enfoca el input del código de barras
+  document.addEventListener("DOMContentLoaded", function() {
+    document.getElementById("venta_codigo").focus();
+  });
+
+  // Función para abrir el modal
+  function abrirModal() {
+    cantidadStr = "";
+    updateDisplay();
+    const modalEl = document.getElementById("cantidadModal");
+    cantidadModalInstance = new bootstrap.Modal(modalEl);
+    cantidadModalInstance.show();
+  }
+
+  // Función para agregar dígitos: no permite agregar '0' como primer dígito
+  function appendNumber(num) {
+    if(cantidadStr === "" && num === "0"){
+      // No se permite comenzar con 0
+      return;
+    }
+    // Si ya hay un valor distinto de vacío, se concatena
+    cantidadStr += num;
+    updateDisplay();
+  }
+
+  // Función para limpiar el display
+  function clearDisplay() {
+    cantidadStr = "";
+    updateDisplay();
+  }
+
+  // Función que actualiza el display; si no hay ningún dígito, muestra 0
+  function updateDisplay() {
+    document.getElementById("cantidadDisplay").innerText = (cantidadStr === "") ? "0" : cantidadStr;
+  }
+
+  // Confirma la cantidad: se verifica que no sea 0 y se envía el formulario
+  function confirmarCantidad() {
+    // Si la cantidad es vacía o resulta 0, se asigna 1 por defecto
+    if(cantidadStr === "" || parseInt(cantidadStr) === 0) {
+      cantidadStr = "1";
+    }
+    document.getElementById("venta_cantidad").value = cantidadStr;
+    if(cantidadModalInstance) {
+      cantidadModalInstance.hide();
+    }
+    document.getElementById("ventaForm").submit();
+  }
+</script>
+{% endblock %}

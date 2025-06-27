@@ -1,0 +1,108 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container my-4">
+  <h2 class="mb-4">Historial de Ventas</h2>
+
+  {% if ventas_por_fecha %}
+    <div class="row">
+      {% for fecha, ventas in ventas_por_fecha.items() %}
+        {# Se calcula el total del día como número flotante #}
+        {% set total_dia = 0.0 %}
+        {% for venta in ventas %}
+          {% set total_dia = total_dia + (venta.total | float) %}
+        {% endfor %}
+        <div class="col-md-6 col-lg-4 mb-4">
+          <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+              <h5 class="card-title mb-0">{{ fecha }}</h5>
+            </div>
+            <div class="card-body">
+              <p class="card-text">
+                <strong>Total del Día:</strong> ${{ total_dia | formato_precio }}<br>
+                <strong>Número de Ventas:</strong> {{ ventas | length }}
+              </p>
+              <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalFecha{{ loop.index }}">
+                Ver detalles
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal para mostrar las ventas del día -->
+        <div class="modal fade" id="modalFecha{{ loop.index }}" tabindex="-1" aria-labelledby="modalFechaLabel{{ loop.index }}" aria-hidden="true">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="modalFechaLabel{{ loop.index }}">
+                  Ventas del {{ fecha }} - Total: ${{ total_dia | formato_precio }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+              </div>
+              <div class="modal-body">
+                {% for venta in ventas %}
+                  <div class="card mb-3">
+                    <div class="card-body">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                          <p class="mb-0"><strong>ID:</strong> {{ venta.id }}</p>
+                          <p class="mb-0"><strong>Hora:</strong> {{ venta.fecha | santiago_time }}</p>
+                          <p class="mb-0"><strong>Total:</strong> ${{ venta.total | formato_precio }}</p>
+                          <p class="mb-0">
+                            <strong>Vendedor:</strong>
+                            {% if venta.usuario %}
+                              {{ venta.usuario.nombre }} {{ venta.usuario.apellido }}
+                            {% else %}
+                              Desconocido
+                            {% endif %}
+                          </p>
+                        </div>
+                        <div>
+                          <button type="button" class="btn btn-sm btn-info" data-bs-toggle="collapse" data-bs-target="#detalleVenta{{ venta.id }}" aria-expanded="false" aria-controls="detalleVenta{{ venta.id }}">
+                            Ver detalle
+                          </button>
+                        </div>
+                      </div>
+                      <div class="collapse mt-2" id="detalleVenta{{ venta.id }}">
+                        <table class="table table-sm table-bordered">
+                          <thead>
+                            <tr>
+                              <th>Código</th>
+                              <th>Producto</th>
+                              <th>Precio</th>
+                              <th>Cantidad</th>
+                              <th>Subtotal</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for codigo, item in venta.detalle_items.items() %}
+                            <tr>
+                              <td>{{ codigo }}</td>
+                              <td>{{ item['nombre'] }}</td>
+                              <td>${{ item['precio'] | formato_precio }}</td>
+                              <td>{{ item['cantidad'] }}</td>
+                              <td>${{ (item['precio'] * item['cantidad']) | formato_precio }}</td>
+                            </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-info">
+      No se han realizado ventas.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

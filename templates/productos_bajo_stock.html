@@ -1,0 +1,130 @@
+{% extends 'layout.html' %}
+{% block content %}
+  <h2 class="mb-4">Productos Bajos en Stock</h2>
+  <p>Los productos se han dividido en dos categorías: <strong>Stock Bajo</strong> (menos de 5 unidades, resaltados en rojo) y <strong>Stock Medio</strong> (de 5 a 10 unidades, resaltados en amarillo). Cada sub-pestaña se paginará mostrando 10 registros por página.</p>
+  
+  <!-- Sub-pestañas (nav tabs) para separar stock bajo y stock medio -->
+  <ul class="nav nav-tabs" id="stockTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="tab-bajo" data-bs-toggle="tab" data-bs-target="#content-bajo" type="button" role="tab" aria-controls="content-bajo" aria-selected="true">
+        Stock Bajo (Rojo)
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-medio" data-bs-toggle="tab" data-bs-target="#content-medio" type="button" role="tab" aria-controls="content-medio" aria-selected="false">
+        Stock Medio (Amarillo)
+      </button>
+    </li>
+  </ul>
+  
+  <div class="tab-content" id="stockTabsContent">
+    <!-- Pestaña para Stock Bajo -->
+    <div class="tab-pane fade show active" id="content-bajo" role="tabpanel" aria-labelledby="tab-bajo">
+      <div class="table-responsive mt-3">
+        <table id="table-stock-bajo" class="table table-striped table-hover table-bordered">
+          <thead class="table-dark">
+            <tr>
+              <th>Código</th>
+              <th>Nombre</th>
+              <th>Precio</th>
+              <th>Stock</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for producto in stock_bajo %}
+              <tr class="table-danger">
+                <td>{{ producto.codigo }}</td>
+                <td>{{ producto.nombre }}</td>
+                <td>{{ "$" ~ (producto.precio | formato_precio) }}</td>
+                <td>{{ producto.stock }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <!-- Contenedor de paginación para Stock Bajo -->
+      <div id="pagination-stock-bajo" class="mt-2 text-center"></div>
+    </div>
+    
+    <!-- Pestaña para Stock Medio -->
+    <div class="tab-pane fade" id="content-medio" role="tabpanel" aria-labelledby="tab-medio">
+      <div class="table-responsive mt-3">
+        <table id="table-stock-medio" class="table table-striped table-hover table-bordered">
+          <thead class="table-dark">
+            <tr>
+              <th>Código</th>
+              <th>Nombre</th>
+              <th>Precio</th>
+              <th>Stock</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for producto in stock_medio %}
+              <tr class="table-warning">
+                <td>{{ producto.codigo }}</td>
+                <td>{{ producto.nombre }}</td>
+                <td>{{ "$" ~ (producto.precio | formato_precio) }}</td>
+                <td>{{ producto.stock }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <!-- Contenedor de paginación para Stock Medio -->
+      <div id="pagination-stock-medio" class="mt-2 text-center"></div>
+    </div>
+  </div>
+  
+  <!-- Script para paginar las tablas en grupos de 10 registros -->
+  <script>
+    function paginateTable(tableId, paginationContainerId, rowsPerPage = 10) {
+      const table = document.getElementById(tableId);
+      if (!table) return;
+      const tbody = table.querySelector('tbody');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      const totalRows = rows.length;
+      const totalPages = Math.ceil(totalRows / rowsPerPage);
+      const paginationContainer = document.getElementById(paginationContainerId);
+      if (totalPages <= 1) {
+        paginationContainer.innerHTML = '';
+        return;
+      }
+  
+      let currentPage = 1;
+      function renderPage(page) {
+        currentPage = page;
+        rows.forEach((row, index) => {
+          row.style.display = (index >= (page - 1) * rowsPerPage && index < page * rowsPerPage) ? '' : 'none';
+        });
+        paginationContainer.innerHTML = '';
+        if (page > 1) {
+          const prevBtn = document.createElement('button');
+          prevBtn.innerText = 'Anterior';
+          prevBtn.className = 'btn btn-sm btn-secondary me-2';
+          prevBtn.addEventListener('click', () => renderPage(page - 1));
+          paginationContainer.appendChild(prevBtn);
+        }
+        for (let i = 1; i <= totalPages; i++) {
+          const pageBtn = document.createElement('button');
+          pageBtn.innerText = i;
+          pageBtn.className = 'btn btn-sm ' + (i === page ? 'btn-primary' : 'btn-outline-primary') + ' me-1';
+          pageBtn.addEventListener('click', () => renderPage(i));
+          paginationContainer.appendChild(pageBtn);
+        }
+        if (page < totalPages) {
+          const nextBtn = document.createElement('button');
+          nextBtn.innerText = 'Siguiente';
+          nextBtn.className = 'btn btn-sm btn-secondary ms-2';
+          nextBtn.addEventListener('click', () => renderPage(page + 1));
+          paginationContainer.appendChild(nextBtn);
+        }
+      }
+      renderPage(1);
+    }
+  
+    document.addEventListener('DOMContentLoaded', function(){
+      paginateTable('table-stock-bajo', 'pagination-stock-bajo', 10);
+      paginateTable('table-stock-medio', 'pagination-stock-medio', 10);
+    });
+  </script>
+{% endblock %}
