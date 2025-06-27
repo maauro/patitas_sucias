@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Login – Sistema de Productos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap CSS & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body, html {
+      height: 100%;
+      margin: 0;
+    }
+    .login-wrapper {
+      display: flex;
+      height: 100%;
+    }
+    /* LEFT PANEL */
+    .login-left {
+      flex: 1;
+      background: linear-gradient(135deg, rgb(0,82,88), #000);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .login-left h2 {
+      font-size: 2rem;
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+    }
+    .login-left .alert {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: #fff;
+    }
+    .login-left .form-control {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid rgba(255,255,255,0.5);
+      border-radius: 0;
+      color: #fff;
+      padding-left: 0;
+    }
+    .login-left .form-control::placeholder {
+      color: rgba(255,255,255,0.7);
+    }
+    .login-left .form-control:focus {
+      background: transparent;
+      box-shadow: none;
+      border-bottom-color: #fff;
+      color: #fff;
+    }
+    .login-left .input-group-text {
+      background: transparent;
+      border: none;
+      color: #fff;
+    }
+    .login-left .btn-login {
+      background: rgb(0,82,88);
+      border: none;
+      padding: 0.75rem;
+      border-radius: 50px;
+      font-weight: 600;
+      width: 100%;
+      margin-top: 1rem;
+      transition: background 0.3s;
+    }
+    .login-left .btn-login:hover {
+      background: #000;
+    }
+    .login-left .form-group {
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+    .login-left .toggle-password {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      color: rgba(255,255,255,0.7);
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+    /* RIGHT PANEL */
+    .login-right {
+      flex: 1;
+      background: #fefcf7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-right img {
+      max-width: 80%;
+      height: auto;
+    }
+    @media (max-width: 768px) {
+      .login-wrapper { flex-direction: column; }
+      .login-right { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-wrapper">
+    <!-- LEFT: Form -->
+    <div class="login-left">
+      <h2 class="text-center">Bienvenido</h2>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} text-center">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+      <form method="POST" autocomplete="off">
+        <div class="form-group">
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
+            <input
+              type="text"
+              name="username"
+              class="form-control"
+              placeholder="Usuario"
+              required
+            >
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+            <input
+              type="password"
+              name="password"
+              id="password"
+              class="form-control"
+              placeholder="Contraseña"
+              required
+            >
+            <button
+              type="button"
+              class="toggle-password"
+              onclick="togglePassword('password', this)"
+            >
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-login">Entrar</button>
+      </form>
+    </div>
+
+    <!-- RIGHT: Illustration -->
+    <div class="login-right">
+      <img src="{{ url_for('static', filename='img/login.png') }}" alt="Ilustración de login">
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    // Toggle password visibility
+    function togglePassword(id, btn) {
+      const input = document.getElementById(id);
+      const icon = btn.querySelector('i');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('bi-eye', 'bi-eye-slash');
+      } else {
+        input.type = 'password';
+        icon.classList.replace('bi-eye-slash', 'bi-eye');
+      }
+    }
+    // Auto-hide flash messages after 3s
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        document.querySelectorAll('.alert').forEach(el => {
+          el.style.transition = 'opacity 0.5s';
+          el.style.opacity = '0';
+          setTimeout(() => el.remove(), 500);
+        });
+      }, 3000);
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

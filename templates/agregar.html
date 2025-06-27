@@ -1,0 +1,46 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h2 class="mb-4">Agregar Producto</h2>
+<div class="card shadow-sm p-4" style="max-width: 500px;">
+  <form method="POST">
+    <div class="mb-3" id="div-codigo">
+      <label class="form-label">Código de barra</label>
+      <input name="codigo" id="codigo_input" type="number" class="form-control" placeholder="Ej: 0274618264372" required>
+    </div>
+    <div class="form-check mb-3">
+      <input class="form-check-input" type="checkbox" id="no_codigo" name="no_codigo" onchange="toggleCodigoInput(this)">
+      <label class="form-check-label" for="no_codigo">
+        No posee código de barra
+      </label>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Nombre</label>
+      <input name="nombre" class="form-control" placeholder="Ej: Collar" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Precio</label>
+      <input name="precio" type="number" step="0.01" min="0.01" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Stock</label>
+      <input name="stock" type="number" min="1" class="form-control" required>
+    </div>
+    <button class="btn btn-success w-100">Guardar</button>
+  </form>
+</div>
+
+<script>
+  // Función para ocultar/habilitar el input de código de barra
+  function toggleCodigoInput(checkbox) {
+    var inputCodigo = document.getElementById("codigo_input");
+    if (checkbox.checked) {
+      inputCodigo.disabled = true;
+      inputCodigo.removeAttribute("required");
+      inputCodigo.value = ""; // Limpiamos el valor
+    } else {
+      inputCodigo.disabled = false;
+      inputCodigo.setAttribute("required", "required");
+    }
+  }
+</script>
+{% endblock %}

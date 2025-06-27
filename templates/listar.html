@@ -1,0 +1,187 @@
+{% extends 'layout.html' %}
+
+{% block head %}
+  <style>
+    /* Card around table */
+    .table-card {
+      border-radius: .5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    /* Input group clear button */
+    .search-container .clear-btn {
+      border: none;
+      background: transparent;
+      font-size: 1.2rem;
+      color: #6c757d;
+      cursor: pointer;
+    }
+    .search-container .clear-btn:hover {
+      color: #495057;
+    }
+    /* Table tweaks */
+    table.table {
+      margin-bottom: 0;
+    }
+    table.table thead {
+      background-color: #343a40;
+      color: #fff;
+    }
+    /* Pagination container */
+    .pagination-container {
+      padding: .75rem;
+      background: #f8f9fa;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Listado de Productos</h2>
+
+<ul class="nav nav-tabs" id="productoTab" role="tablist">
+  <li class="nav-item">
+    <button class="nav-link active" id="con-codigo-tab" data-bs-toggle="tab" data-bs-target="#con-codigo"
+            type="button">Con Código de Barra</button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" id="sin-codigo-tab" data-bs-toggle="tab" data-bs-target="#sin-codigo"
+            type="button">Sin Código de Barra</button>
+  </li>
+</ul>
+
+<div class="tab-content mt-4">
+
+  {% for mode in ['con','sin'] %}
+  {% set productos = mode=='con' and productos_con_codigo or productos_sin_codigo %}
+  <div class="tab-pane fade {% if mode=='con' %}show active{% endif %}" id="{{ mode }}-codigo" role="tabpanel">
+    <div class="mb-3 search-container" style="max-width:400px;">
+      <div class="input-group">
+        <input type="text"
+               class="form-control"
+               id="search{{ mode|capitalize }}"
+               placeholder="Buscar código o nombre..."
+               oninput="filterAndPaginate('{{mode}}', this.value)" />
+        <span class="input-group-text clear-btn"
+              onclick="document.getElementById('search{{mode|capitalize}}').value=''; filterAndPaginate('{{mode}}','');">
+          <i class="bi bi-x-circle-fill"></i>
+        </span>
+      </div>
+    </div>
+
+    {% if productos %}
+    <div class="card table-card">
+      <div class="table-responsive">
+        <table class="table table-striped table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Nombre</th>
+              <th>Precio</th>
+              <th>Stock</th>
+              {% if session.rol_id==1 %}<th class="text-center">Acciones</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody id="tbody{{mode|capitalize}}">
+            {% for p in productos %}
+            <tr>
+              <td>{{ p.codigo }}</td>
+              <td>{{ p.nombre }}</td>
+              <td>${{ p.precio|formato_precio }}</td>
+              <td>{{ p.stock }}</td>
+              {% if session.rol_id==1 %}
+              <td class="text-center">
+                <button class="btn btn-sm btn-warning me-1"
+                        data-bs-toggle="modal" data-bs-target="#modalEdit{{mode|capitalize}}{{p.id}}">
+                  <i class="bi bi-pencil-fill"></i>
+                </button>
+                <button class="btn btn-sm btn-danger"
+                        onclick="eliminarProducto({{p.id}})">
+                  <i class="bi bi-trash-fill"></i>
+                </button>
+              </td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination-container d-flex justify-content-center">
+        <ul id="pag{{mode|capitalize}}" class="pagination pagination-sm mb-0"></ul>
+      </div>
+    </div>
+    {% else %}
+      <div class="alert alert-info">No hay productos {{ mode=='con' and 'con' or 'sin' }} código.</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const allData      = { con: [], sin: [] };
+  const filteredData = { con: [], sin: [] };
+  const perPage      = 10;
+
+  function init(mode) {
+    const tableKey = mode.charAt(0).toUpperCase() + mode.slice(1);
+    allData[mode] = Array.from(
+      document.querySelectorAll(`#tbody${tableKey} tr`)
+    );
+    filterAndPaginate(mode, '');
+  }
+
+  function filterAndPaginate(mode, query) {
+    const q = query.trim().toLowerCase();
+    filteredData[mode] = allData[mode].filter(row => {
+      const code = row.cells[0].innerText.toLowerCase();
+      const name = row.cells[1].innerText.toLowerCase();
+      return !q || code.includes(q) || name.includes(q);
+    });
+    renderPager(mode);
+    showPage(mode, 1);
+  }
+
+  function renderPager(mode) {
+    const key       = mode.charAt(0).toUpperCase() + mode.slice(1);
+    const container = document.getElementById(`pag${key}`);
+    container.innerHTML = '';
+    const totalPages = Math.ceil(filteredData[mode].length / perPage) || 1;
+
+    for (let i = 1; i <= totalPages; i++) {
+      const li = document.createElement('li');
+      li.className = 'page-item' + (i === 1 ? ' active' : '');
+      const btn = document.createElement('button');
+      btn.className = 'page-link';
+      btn.textContent = i;
+      btn.addEventListener('click', () => {
+        container.querySelectorAll('.page-item').forEach(x => x.classList.remove('active'));
+        li.classList.add('active');
+        showPage(mode, i);
+      });
+      li.appendChild(btn);
+      container.appendChild(li);
+    }
+  }
+
+  function showPage(mode, page) {
+    const start = (page - 1) * perPage;
+    const end   = page * perPage;
+    allData[mode].forEach(r => r.style.display = 'none');
+    filteredData[mode]
+      .slice(start, end)
+      .forEach(r => r.style.display = '');
+  }
+
+  function eliminarProducto(id) {
+    // Lógica de confirmación...
+    console.log('Eliminar producto', id);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    init('con');
+    init('sin');
+  });
+</script>
+{% endblock %}

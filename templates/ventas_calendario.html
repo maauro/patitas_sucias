@@ -1,0 +1,191 @@
+{% extends 'layout.html' %}
+
+{% block head %}
+  <!-- Incluir el CSS de FullCalendar y del plugin dayGrid -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/daygrid/main.min.css" rel="stylesheet">
+  <style>
+    /* Estilos personalizados para un diseño moderno y atractivo */
+    .fc {
+      font-family: 'Roboto', sans-serif;
+    }
+    .fc-toolbar-title {
+      font-size: 1.8em;
+      font-weight: bold;
+      color: #2C3E50;
+    }
+    /* Botones del toolbar en tono rojo/naranja */
+    .fc-button {
+      background-color: #E74C3C;
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      padding: 5px 10px;
+      margin: 2px;
+    }
+    .fc-button:hover, .fc-button-active {
+      background-color: #C0392B;
+    }
+    /* Se asigna el texto en español para los botones del toolbar (esto también lo configura FullCalendar) */
+    /* Estos textos se pasan en el JS */
+    /* Estilo para los eventos (tarjetas) en la cuadrícula */
+    .fc-daygrid-event {
+      background-color: #9B59B6;
+      border: none;
+      border-radius: 3px;
+      padding: 2px 4px;
+      font-size: 0.9em;
+    }
+    .fc-daygrid-event:hover {
+      background-color: #8E44AD;
+    }
+    .fc .fc-daygrid-day-number {
+      color: #2C3E50;
+      font-weight: 600;
+    }
+    .fc-scrollgrid-section-header td {
+      background-color: #F7F7F7;
+      border-bottom: 1px solid #ddd;
+    }
+    .fc-col-header-cell-cushion {
+      font-weight: bold;
+      font-size: 0.9em;
+      color: #34495E;
+    }
+    /* Contenedor del calendario sin scroll horizontal y con ancho completo */
+    #calendar {
+      width: 100%;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+  <h2 class="mb-4">Calendario de Ventas</h2>
+  <div id="calendar"></div>
+</div>
+
+<!-- Modal para mostrar el detalle de las ventas del día -->
+<div class="modal fade" id="salesModal" tabindex="-1" aria-labelledby="salesModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="salesModalLabel"></h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body" id="salesModalBody">
+        <!-- Se inyectará el acordeón con el detalle de cada venta -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  <!-- Incluir FullCalendar JS y el plugin dayGrid -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/daygrid/main.min.js"></script>
+  <script>
+    // Se asume que 'calendar_data' viene desde el backend
+    var calendarData = {{ calendar_data | tojson }};
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      var calendarEl = document.getElementById('calendar');
+      var events = [];
+      
+      // Transformar calendarData en eventos para el calendario
+      Object.keys(calendarData).forEach(function(fecha) {
+        var ventas = calendarData[fecha];
+        var totalDia = ventas.reduce(function(acc, venta) {
+          return acc + venta.total;
+        }, 0);
+        events.push({
+          title: "Total: $" + totalDia.toLocaleString("es-ES", { minimumFractionDigits: 0, maximumFractionDigits: 0 }),
+          start: fecha,
+          ventas: ventas  // Se guardan los detalles para el modal
+        });
+      });
+      
+      // Inicializar FullCalendar con configuración en español y semana que inicia el lunes
+      var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'es',
+        firstDay: 1,
+        height: 'auto',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,dayGridWeek,dayGridDay'
+        },
+        buttonText: {
+          today: 'Hoy',
+          month: 'Mes',
+          week: 'Semana',
+          day: 'Día'
+        },
+        events: events,
+        eventClick: function(info) {
+          var ventas = info.event.extendedProps.ventas;
+          var totalDia = ventas.reduce(function(acc, venta) {
+            return acc + venta.total;
+          }, 0);
+          
+          // Asigna el título del modal
+          document.getElementById('salesModalLabel').innerText = "Ventas del " + info.event.startStr + " - Total: $" + totalDia.toLocaleString("es-ES", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+          
+          // Construir el HTML del acordeón para agrupar cada venta
+          var accordionHtml = '<div class="accordion" id="accordionVentas">';
+          ventas.forEach(function(venta) {
+            accordionHtml += '<div class="accordion-item">';
+            accordionHtml += '<h2 class="accordion-header" id="heading' + venta.id + '">';
+            accordionHtml += '<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse' + venta.id + '" aria-expanded="false" aria-controls="collapse' + venta.id + '">';
+            accordionHtml += 'Venta ID: ' + venta.id + ' - Hora: ' + venta.hora + ' - Total: $' + Number(venta.total).toLocaleString("es-ES", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            accordionHtml += '</button>';
+            accordionHtml += '</h2>';
+            accordionHtml += '<div id="collapse' + venta.id + '" class="accordion-collapse collapse" aria-labelledby="heading' + venta.id + '" data-bs-parent="#accordionVentas">';
+            accordionHtml += '<div class="accordion-body">';
+            if(venta.usuario) {
+              accordionHtml += '<p><strong>Vendedor:</strong> ' + venta.usuario.nombre + ' ' + venta.usuario.apellido + '</p>';
+            } else {
+              accordionHtml += '<p><strong>Vendedor:</strong> Desconocido</p>';
+            }
+            // Mostrar detalle de productos en una tabla, si existe
+            if (venta.detalle_items && Object.keys(venta.detalle_items).length > 0) {
+              accordionHtml += '<div class="table-responsive">';
+              accordionHtml += '<table class="table table-sm table-striped table-bordered detalle-table">';
+              accordionHtml += '<thead class="table-dark"><tr><th>Código</th><th>Producto</th><th>Precio</th><th>Cantidad</th><th>Subtotal</th></tr></thead>';
+              accordionHtml += '<tbody>';
+              Object.keys(venta.detalle_items).forEach(function(codigo) {
+                var item = venta.detalle_items[codigo];
+                var subtotal = item.precio * item.cantidad;
+                accordionHtml += '<tr>';
+                accordionHtml += '<td>' + codigo + '</td>';
+                accordionHtml += '<td>' + item.nombre + '</td>';
+                accordionHtml += '<td>$' + Number(item.precio).toLocaleString("es-ES", { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + '</td>';
+                accordionHtml += '<td>' + item.cantidad + '</td>';
+                accordionHtml += '<td>$' + subtotal.toLocaleString("es-ES", { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + '</td>';
+                accordionHtml += '</tr>';
+              });
+              accordionHtml += '</tbody></table></div>';
+            } else {
+              accordionHtml += '<p>No hay detalle disponible.</p>';
+            }
+            // Botón para colapsar el detalle y volver al resumen
+            accordionHtml += '<button type="button" class="btn btn-outline-secondary btn-sm mt-2" data-bs-toggle="collapse" data-bs-target="#collapse' + venta.id + '">Volver a resumen</button>';
+            accordionHtml += '</div></div></div>';
+          });
+          accordionHtml += '</div>';
+          
+          document.getElementById('salesModalBody').innerHTML = accordionHtml;
+          var modal = new bootstrap.Modal(document.getElementById('salesModal'));
+          modal.show();
+        }
+      });
+      
+      calendar.render();
+    });
+  </script>
+{% endblock %}
