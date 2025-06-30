@@ -63,6 +63,25 @@
       max-width: 900px;
       margin: 0 auto;
     }
+
+    :root {
+      --brand: #005258;
+      /*  Ligeramente más claro que #005258  */
+      --brand-light: #337579;
+    }
+
+    /* Botón outline al estilo Bootstrap pero con nuestro color claro */
+    .btn-outline-brand {
+      color: var(--brand-light);
+      border: 1px solid var(--brand-light);
+      background-color: transparent;
+      transition: background-color .2s, color .2s;
+    }
+    .btn-outline-brand:hover,
+    .btn-outline-brand:focus {
+      background-color: var(--brand-light);
+      color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -82,32 +101,32 @@
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
           {% if session.rol_id == 1 %}
             <li class="nav-item">
-              <a class="nav-link btn btn-outline-light btn-modern" href="/agregar">Agregar</a>
+              <a class="nav-link btn btn-outline-brand btn-modern" href="/agregar"><i class="bi bi-person-plus"></i><span> Crear Producto</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link btn btn-outline-light btn-modern" href="/listar">Listar</a>
+              <a class="nav-link btn btn-outline-brand btn-modern" href="/listar"><i class="bi bi-people"></i><span> Listar Productos</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link btn btn-outline-light btn-modern" href="/ventas">Ventas</a>
+              <a class="nav-link btn btn-outline-brand btn-modern" href="/ventas"><i class="bi bi-box-seam"></i><span> Crear Venta</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link btn btn-outline-light btn-modern" href="/ventas_calendario">Calendario</a>
+              <a class="nav-link btn btn-outline-brand btn-modern" href="/ventas_calendario"><i class="bi bi-card-list"></i><span> Listar Ventas</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link btn btn-outline-light btn-modern" href="/crear_usuario">Crear Usuario</a>
+              <a class="nav-link btn btn-outline-brand btn-modern" href="/crear_usuario"><i class="bi bi-cart-plus"></i><span> Crear Usuario</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link btn btn-outline-light btn-modern" href="/listar_usuarios">Usuarios</a>
+              <a class="nav-link btn btn-outline-brand btn-modern" href="/listar_usuarios"><i class="bi bi-receipt"></i><span> Listar Usuarios</a>
             </li>
           {% elif session.rol_id == 2 %}
             <li class="nav-item">
-              <a class="nav-link btn btn-outline-light btn-modern" href="/listar">Listar</a>
+              <a class="nav-link btn btn-outline-brand btn-modern" href="/listar"><i class="bi bi-people"></i><span> Listar Productos</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link btn btn-outline-light btn-modern" href="/ventas">Ventas</a>
+              <a class="nav-link btn btn-outline-brand btn-modern" href="/ventas"><i class="bi bi-box-seam"></i><span> Crear Venta</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link btn btn-outline-light btn-modern" href="/ventas_calendario">Calendario</a>
+              <a class="nav-link btn btn-outline-brand btn-modern" href="/ventas_calendario"><i class="bi bi-card-list"></i><span> Listar Ventas</a>
             </li>
           {% endif %}
         </ul>
