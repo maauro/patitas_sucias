@@ -1,15 +1,31 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session # type: ignore
-from flask_sqlalchemy import SQLAlchemy # type: ignore
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session  # type: ignore
+from flask_sqlalchemy import SQLAlchemy  # type: ignore
 from datetime import datetime
-import json
+from zoneinfo import ZoneInfo
 from functools import wraps
-import zoneinfo
+from sqlalchemy import func, extract # type: ignore
+from sqlalchemy.exc import IntegrityError # type: ignore
+import subprocess
+import os
+import json
 
 app = Flask(__name__)
-app.secret_key = 'clave_secreta'
+app.secret_key = os.urandom(24)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///patitas_sucias.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
+_first_request = True
+
+@app.before_request
+def clear_session_on_start():
+    global _first_request
+    if _first_request:
+        session.clear()
+        _first_request = False
+    # opcional: forzar login si no hay sesión
+    if request.endpoint not in ('login', 'static') and not session.get('user_id'):
+        return redirect(url_for('login'))
 
 # Modelo
 class Producto(db.Model):
@@ -46,7 +62,7 @@ def inject_now():
 def login():
     # 1) Si ya hay usuario en sesión, redirige a listar_productos
     if session.get('user_id'):
-        return redirect(url_for('listar_productos'))
+        return redirect(url_for('inicio'))
 
     # 2) Si viene del formulario…
     if request.method == 'POST':
@@ -59,7 +75,7 @@ def login():
             session['rol_id']    = usuario.rol_id
             session['nombre']    = usuario.nombre
             session['apellido']  = usuario.apellido
-            return redirect(url_for('listar_productos'))
+            return redirect(url_for('login'))
         else:
             flash("Credenciales inválidas", "danger")
             return redirect(url_for('login'))
@@ -76,12 +92,6 @@ def logout():
     flash("Sesión cerrada", "info")
     return redirect(url_for('login'))
 
-@app.route('/')
-def inicio():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    return redirect(url_for('listar_productos'))
-
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -92,6 +102,61 @@ def admin_required(f):
             return redirect(url_for('listar_productos'))
         return f(*args, **kwargs)
     return decorated_function
+
+@app.route('/')
+@admin_required
+def inicio():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    hoy = datetime.today()
+    mes_actual = hoy.month
+    anio_actual = hoy.year
+    user_id = session.get('user_id')
+
+    total_general = (
+        db.session
+          .query(func.coalesce(func.sum(Venta.total), 0.0))
+          .filter(
+            extract('year',  Venta.fecha) == anio_actual,
+            extract('month', Venta.fecha) == mes_actual
+          )
+          .scalar()
+    )
+
+    total_usuario = (
+        db.session
+          .query(func.coalesce(func.sum(Venta.total), 0.0))
+          .filter(
+            extract('year',  Venta.fecha) == anio_actual,
+            extract('month', Venta.fecha) == mes_actual,
+            Venta.usuario_id == user_id
+          )
+          .scalar()
+    )
+
+    total_general_fmt = f"{int(total_general):,}".replace(",", ".")
+    total_usuario_fmt = f"{int(total_usuario):,}".replace(",", ".")
+
+    # Nombre del mes en español
+    MESES_ES = {
+        1: 'Enero',   2: 'Febrero',  3: 'Marzo',      4: 'Abril',
+        5: 'Mayo',    6: 'Junio',    7: 'Julio',      8: 'Agosto',
+        9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+    }
+    nombre_mes_es = MESES_ES[mes_actual]
+
+    productos_criticos = Producto.query.filter(
+        Producto.stock <= 10
+    ).order_by(Producto.nombre.asc()).all()
+    
+    return render_template('index.html',
+        nombre_mes=nombre_mes_es,
+        anio_actual=anio_actual,
+        total_general=total_general_fmt,
+        total_usuario=total_usuario_fmt,
+        productos_criticos=productos_criticos
+    )
 
 def generar_codigo_automatico():
     # 1) Recogemos los códigos numéricos de los auto-generados
