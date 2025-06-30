@@ -737,7 +737,7 @@ if __name__ == '__main__':
                 nombre="admin",
                 apellido="admin",
                 username="admin",
-                password="admin",  # En producción, se debe guardar un hash
+                password="kvM7nIYblg1IMK2",  # En producción, se debe guardar un hash
                 rol_id=1
             )
             db.session.add(admin)
