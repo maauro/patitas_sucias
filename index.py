@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, Markup  # type: ignore
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session  # type: ignore
 from flask_sqlalchemy import SQLAlchemy  # type: ignore
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -737,7 +737,7 @@ if __name__ == '__main__':
                 nombre="admin",
                 apellido="admin",
                 username="admin",
-                password="admin",  # En producción, se debe guardar un hash
+                password="kvM7nIYblg1IMK2",  # En producción, se debe guardar un hash
                 rol_id=1
             )
             db.session.add(admin)

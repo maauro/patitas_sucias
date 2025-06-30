@@ -50,138 +50,201 @@
 </ul>
 
 <div class="tab-content mt-4">
-
   {% for mode in ['con','sin'] %}
-  {% set productos = mode=='con' and productos_con_codigo or productos_sin_codigo %}
-  <div class="tab-pane fade {% if mode=='con' %}show active{% endif %}" id="{{ mode }}-codigo" role="tabpanel">
-    <div class="mb-3 search-container" style="max-width:400px;">
-      <div class="input-group">
-        <input type="text"
-               class="form-control"
-               id="search{{ mode|capitalize }}"
-               placeholder="Buscar código o nombre..."
-               oninput="filterAndPaginate('{{mode}}', this.value)" />
-        <span class="input-group-text clear-btn"
-              onclick="document.getElementById('search{{mode|capitalize}}').value=''; filterAndPaginate('{{mode}}','');">
-          <i class="bi bi-x-circle-fill"></i>
-        </span>
+    {% set productos = mode=='con' and productos_con_codigo or productos_sin_codigo %}
+    <div class="tab-pane fade {% if mode=='con' %}show active{% endif %}" id="{{ mode }}-codigo" role="tabpanel">
+      <div class="mb-3 search-container" style="max-width:400px;">
+        <div class="input-group">
+          <input type="text"
+                 class="form-control"
+                 id="search{{ mode|capitalize }}"
+                 placeholder="Buscar código o nombre..."
+                 oninput="filterAndPaginate('{{mode}}', this.value)" />
+          <span class="input-group-text clear-btn"
+                onclick="document.getElementById('search{{mode|capitalize}}').value=''; filterAndPaginate('{{mode}}','');">
+            <i class="bi bi-x-circle-fill"></i>
+          </span>
+        </div>
       </div>
-    </div>
 
-    {% if productos %}
-    <div class="card table-card">
-      <div class="table-responsive">
-        <table class="table table-striped table-hover mb-0">
-          <thead>
-            <tr>
-              <th>Código</th>
-              <th>Nombre</th>
-              <th>Precio</th>
-              <th>Stock</th>
-              {% if session.rol_id==1 %}<th class="text-center">Acciones</th>{% endif %}
-            </tr>
-          </thead>
-          <tbody id="tbody{{mode|capitalize}}">
-            {% for p in productos %}
-            <tr>
-              <td>{{ p.codigo }}</td>
-              <td>{{ p.nombre }}</td>
-              <td>${{ p.precio|formato_precio }}</td>
-              <td>{{ p.stock }}</td>
-              {% if session.rol_id==1 %}
-              <td class="text-center">
-                <button class="btn btn-sm btn-warning me-1"
-                        data-bs-toggle="modal" data-bs-target="#modalEdit{{mode|capitalize}}{{p.id}}">
-                  <i class="bi bi-pencil-fill"></i>
-                </button>
-                <button class="btn btn-sm btn-danger"
-                        onclick="eliminarProducto({{p.id}})">
-                  <i class="bi bi-trash-fill"></i>
-                </button>
-              </td>
-              {% endif %}
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      {% if productos %}
+      <div class="card table-card">
+        <div class="table-responsive">
+          <table class="table table-striped table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Precio</th>
+                <th>Stock</th>
+                {% if session.rol_id==1 %}<th class="text-center">Acciones</th>{% endif %}
+              </tr>
+            </thead>
+            <tbody id="tbody{{mode|capitalize}}">
+              {% for p in productos %}
+              <tr>
+                <td>{{ p.codigo }}</td>
+                <td>{{ p.nombre }}</td>
+                <td>${{ p.precio|formato_precio }}</td>
+                <td>{{ p.stock }}</td>
+                {% if session.rol_id==1 %}
+                <td class="text-center">
+                  <button class="btn btn-sm btn-warning me-1"
+                          data-bs-toggle="modal" data-bs-target="#modalEdit{{mode|capitalize}}{{p.id}}">
+                    <i class="bi bi-pencil-fill"></i>
+                  </button>
+                  <button class="btn btn-sm btn-danger"
+                          onclick="eliminarProducto({{p.id}})">
+                    <i class="bi bi-trash-fill"></i>
+                  </button>
+                </td>
+                {% endif %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination-container d-flex justify-content-center">
+          <ul id="pag{{mode|capitalize}}" class="pagination pagination-sm mb-0"></ul>
+        </div>
       </div>
-      <div class="pagination-container d-flex justify-content-center">
-        <ul id="pag{{mode|capitalize}}" class="pagination pagination-sm mb-0"></ul>
-      </div>
+      {% else %}
+        <div class="alert alert-info">No hay productos {{ mode=='con' and 'con' or 'sin' }} código.</div>
+      {% endif %}
     </div>
-    {% else %}
-      <div class="alert alert-info">No hay productos {{ mode=='con' and 'con' or 'sin' }} código.</div>
-    {% endif %}
-  </div>
   {% endfor %}
 
-</div>
+  {# Modales de edición fuera de la tabla #}
+  {% for mode in ['con','sin'] %}
+    {% set productos = mode=='con' and productos_con_codigo or productos_sin_codigo %}
+    {% for p in productos %}
+      <div class="modal fade" id="modalEdit{{mode|capitalize}}{{p.id}}" tabindex="-1"
+           aria-labelledby="modalEditLabel{{mode|capitalize}}{{p.id}}" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <form method="POST" action="{{ url_for('editar_producto', id=p.id) }}">
+              {% if csrf_token %}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              {% endif %}
+              <div class="modal-header">
+                <h5 class="modal-title" id="modalEditLabel{{mode|capitalize}}{{p.id}}">Editar Producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label for="nombre{{p.id}}" class="form-label">Nombre</label>
+                  <input type="text" class="form-control" id="nombre{{p.id}}" name="nombre" value="{{p.nombre}}" required>
+                </div>
+                <div class="mb-3">
+                  <label for="precio{{p.id}}" class="form-label">Precio</label>
+                  <input type="number" step="0.01" class="form-control" id="precio{{p.id}}" name="precio" value="{{p.precio}}" required>
+                </div>
+                <div class="mb-3">
+                  <label for="stock{{p.id}}" class="form-label">Stock</label>
+                  <input type="number" class="form-control" id="stock{{p.id}}" name="stock" value="{{p.stock}}" required>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar cambios</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% endfor %}
+
 {% endblock %}
 
 {% block scripts %}
-<script>
-  const allData      = { con: [], sin: [] };
-  const filteredData = { con: [], sin: [] };
-  const perPage      = 10;
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+  <script>
+    const allData      = { con: [], sin: [] };
+    const filteredData = { con: [], sin: [] };
+    const perPage      = 10;
 
-  function init(mode) {
-    const tableKey = mode.charAt(0).toUpperCase() + mode.slice(1);
-    allData[mode] = Array.from(
-      document.querySelectorAll(`#tbody${tableKey} tr`)
-    );
-    filterAndPaginate(mode, '');
-  }
-
-  function filterAndPaginate(mode, query) {
-    const q = query.trim().toLowerCase();
-    filteredData[mode] = allData[mode].filter(row => {
-      const code = row.cells[0].innerText.toLowerCase();
-      const name = row.cells[1].innerText.toLowerCase();
-      return !q || code.includes(q) || name.includes(q);
-    });
-    renderPager(mode);
-    showPage(mode, 1);
-  }
-
-  function renderPager(mode) {
-    const key       = mode.charAt(0).toUpperCase() + mode.slice(1);
-    const container = document.getElementById(`pag${key}`);
-    container.innerHTML = '';
-    const totalPages = Math.ceil(filteredData[mode].length / perPage) || 1;
-
-    for (let i = 1; i <= totalPages; i++) {
-      const li = document.createElement('li');
-      li.className = 'page-item' + (i === 1 ? ' active' : '');
-      const btn = document.createElement('button');
-      btn.className = 'page-link';
-      btn.textContent = i;
-      btn.addEventListener('click', () => {
-        container.querySelectorAll('.page-item').forEach(x => x.classList.remove('active'));
-        li.classList.add('active');
-        showPage(mode, i);
-      });
-      li.appendChild(btn);
-      container.appendChild(li);
+    function init(mode) {
+      const key = mode.charAt(0).toUpperCase() + mode.slice(1);
+      allData[mode] = Array.from(document.querySelectorAll(`#tbody${key} tr`));
+      filterAndPaginate(mode, '');
     }
-  }
 
-  function showPage(mode, page) {
-    const start = (page - 1) * perPage;
-    const end   = page * perPage;
-    allData[mode].forEach(r => r.style.display = 'none');
-    filteredData[mode]
-      .slice(start, end)
-      .forEach(r => r.style.display = '');
-  }
+    function filterAndPaginate(mode, query) {
+      const q = query.trim().toLowerCase();
+      filteredData[mode] = allData[mode].filter(row => {
+        const code = row.cells[0].innerText.toLowerCase();
+        const name = row.cells[1].innerText.toLowerCase();
+        return !q || code.includes(q) || name.includes(q);
+      });
+      renderPager(mode);
+      showPage(mode, 1);
+    }
 
-  function eliminarProducto(id) {
-    // Lógica de confirmación...
-    console.log('Eliminar producto', id);
-  }
+    function renderPager(mode) {
+      const key       = mode.charAt(0).toUpperCase() + mode.slice(1);
+      const container = document.getElementById(`pag${key}`);
+      container.innerHTML = '';
+      const totalPages = Math.ceil(filteredData[mode].length / perPage) || 1;
 
-  document.addEventListener('DOMContentLoaded', () => {
-    init('con');
-    init('sin');
-  });
-</script>
+      for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement('li');
+        li.className = 'page-item' + (i === 1 ? ' active' : '');
+        const btn = document.createElement('button');
+        btn.className = 'page-link';
+        btn.textContent = i;
+        btn.addEventListener('click', () => {
+          container.querySelectorAll('.page-item').forEach(x => x.classList.remove('active'));
+          li.classList.add('active');
+          showPage(mode, i);
+        });
+        li.appendChild(btn);
+        container.appendChild(li);
+      }
+    }
+
+    function showPage(mode, page) {
+      const start = (page - 1) * perPage;
+      const end   = page * perPage;
+      const key   = mode.charAt(0).toUpperCase() + mode.slice(1);
+      document.querySelectorAll(`#tbody${key} tr`).forEach(r => r.style.display = 'none');
+      filteredData[mode].slice(start, end).forEach(r => r.style.display = '');
+    }
+
+    function eliminarProducto(id) {
+      Swal.fire({
+        title: '¿Estás seguro?',
+        text: 'No podrás revertir esto.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = `/eliminar_producto/${id}`;
+          {% if csrf_token %}
+          const csrfInput = document.createElement('input');
+          csrfInput.name = 'csrf_token'; csrfInput.type = 'hidden';
+          csrfInput.value = '{{ csrf_token() }}';
+          form.appendChild(csrfInput);
+          {% endif %}
+          document.body.appendChild(form);
+          form.submit();
+        }
+      });
+    }
+
+    function capitalize(s) {
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { init('con'); init('sin'); });
+  </script>
 {% endblock %}
