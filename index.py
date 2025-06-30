@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, Markup  # type: ignore
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session  # type: ignore
 from flask_sqlalchemy import SQLAlchemy  # type: ignore
 from datetime import datetime
 from zoneinfo import ZoneInfo
