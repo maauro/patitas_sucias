@@ -1,4 +1,3 @@
-{# templates/index.html #}
 {% extends 'layout.html' %}
 
 {% block content %}
@@ -93,6 +92,10 @@
     padding: .75rem 1rem;
     font-size: 1.1rem;
   }
+  .search-critico {
+    padding: 1rem;
+    background: #f8f9fa;
+  }
   .table-critico {
     width: 100%;
     border-collapse: collapse;
@@ -118,6 +121,11 @@
     text-align: center;
     padding: 1rem;
     color: #888;
+  }
+  .pagination-critico {
+    padding: .75rem;
+    background: #f8f9fa;
+    text-align: center;
   }
   @media(max-width:768px) {
     .layout-flex {
@@ -168,6 +176,11 @@
       <!-- Productos en Stock Crítico -->
       <div class="table-critico-container">
         <h3>Productos en Stock Crítico</h3>
+        <div class="search-critico">
+          <input type="text" id="searchCritico" class="form-control"
+                 placeholder="Buscar código o descripción..."
+                 oninput="filterCritico(this.value)" />
+        </div>
         <table class="table-critico">
           <thead>
             <tr>
@@ -177,11 +190,11 @@
               <th>Stock Aviso</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="tbodyCritico">
             {% for prod in productos_criticos %}
             <tr>
               <td>{{ prod.codigo }}</td>
-              <td>{{ prod.descripcion }}</td>
+              <td>{{ prod.nombre }}</td>
               <td>
                 {% if prod.medida == 1 %}
                   {{ "{:,.2f}".format(prod.stock).replace(",", ".") }} Kg
@@ -200,16 +213,73 @@
                 {% endif %}
               </td>
             </tr>
-            {% else %}
-            <tr>
-              <td colspan="4" class="no-data">No hay productos en stock crítico.</td>
-            </tr>
             {% endfor %}
           </tbody>
         </table>
+        <div class="pagination-critico">
+          <ul id="pagCritico" class="pagination pagination-sm mb-0 d-inline-flex"></ul>
+        </div>
       </div>
     </section>
 
   </div>
 </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const perPageCritico = 10;
+  let allCritico = [];
+  let filteredCritico = [];
+
+  function initCritico() {
+    allCritico = Array.from(document.querySelectorAll('#tbodyCritico tr'));
+    filteredCritico = allCritico;
+    renderPagerCritico();
+    showPageCritico(1);
+  }
+
+  function filterCritico(query) {
+    const q = query.trim().toLowerCase();
+    filteredCritico = allCritico.filter(row => {
+      const code = row.cells[0].innerText.toLowerCase();
+      const desc = row.cells[1].innerText.toLowerCase();
+      return !q || code.includes(q) || desc.includes(q);
+    });
+    renderPagerCritico();
+    showPageCritico(1);
+  }
+
+  function renderPagerCritico() {
+    const container = document.getElementById('pagCritico');
+    container.innerHTML = '';
+    const totalPages = Math.ceil(filteredCritico.length / perPageCritico) || 1;
+    for (let i = 1; i <= totalPages; i++) {
+      const li = document.createElement('li');
+      li.className = 'page-item' + (i === 1 ? ' active' : '');
+      const btn = document.createElement('button');
+      btn.className = 'page-link';
+      btn.textContent = i;
+      btn.onclick = () => {
+        document.querySelectorAll('#pagCritico .page-item').forEach(x => x.classList.remove('active'));
+        li.classList.add('active');
+        showPageCritico(i);
+      };
+      li.appendChild(btn);
+      container.appendChild(li);
+    }
+  }
+
+  function showPageCritico(page) {
+    const start = (page - 1) * perPageCritico;
+    const end = page * perPageCritico;
+    allCritico.forEach(r => r.style.display = 'none');
+    filteredCritico.slice(start, end).forEach(r => r.style.display = '');
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initCritico();
+  });
+</script>
 {% endblock %}
