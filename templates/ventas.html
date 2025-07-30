@@ -30,7 +30,7 @@
         
         <!-- Botón para abrir modal del teclado numérico -->
         <div class="col-md-4 d-flex align-items-end justify-content-end">
-          <button type="button" class="btn btn-success" onclick="abrirModal()">
+          <button type="button" class="btn btn-success" onclick="confirmarCantidad()">
             Agregar Producto
           </button>
         </div>
@@ -66,7 +66,18 @@
                 <td class="text-center">{{ item.codigo }}</td>
                 <td>{{ item.nombre }}</td>
                 <td class="text-center">{{ item.cantidad }}</td>
-                <td class="text-end">${{ item.precio|formato_precio }}</td>
+                <td>
+                  <div class="d-flex">
+                    {%- if item.dscto %}
+                      <span class="text-muted" style="text-decoration: line-through;">
+                        ${{ item.precio_sin_dscto|formato_precio }}
+                      </span>
+                    {%- endif %}
+                    <span class="ms-auto">
+                      ${{ item.precio|formato_precio }}
+                    </span>
+                  </div>
+                </td>
                 <td class="text-end">${{ item.subtotal|formato_precio }}</td>
                 <td class="text-center">
                   <div class="d-flex justify-content-center gap-1">
@@ -95,7 +106,7 @@
       <div class="d-flex justify-content-end gap-2 mt-2">
         <form method="POST">
           <input type="hidden" name="action" value="finalizar">
-          <button type="submit" class="btn btn-primary">Finalizar Venta</button>
+          <button id="finalizarVenta" type="submit" class="btn btn-primary">Finalizar Venta</button>
         </form>
         <form method="POST" action="/vaciar_carrito">
           <button type="submit" class="btn btn-outline-danger">Vaciar Carrito</button>
@@ -191,15 +202,6 @@
     document.getElementById("venta_codigo").focus();
   });
 
-  // Función para abrir el modal
-  function abrirModal() {
-    cantidadStr = "";
-    updateDisplay();
-    const modalEl = document.getElementById("cantidadModal");
-    cantidadModalInstance = new bootstrap.Modal(modalEl);
-    cantidadModalInstance.show();
-  }
-
   // Función para agregar dígitos: no permite agregar '0' como primer dígito
   function appendNumber(num) {
     if(cantidadStr === "" && num === "0"){
@@ -234,5 +236,13 @@
     }
     document.getElementById("ventaForm").submit();
   }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();                      // evita cualquier otro submit
+      const btn = document.getElementById('finalizarVenta');
+      if (btn) btn.click();                   // dispara el click aunque el foco no esté en el form
+    }
+  });
 </script>
 {% endblock %}

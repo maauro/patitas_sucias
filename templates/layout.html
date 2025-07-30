@@ -101,22 +101,25 @@
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
           {% if session.rol_id == 1 %}
             <li class="nav-item">
-              <a class="nav-link btn btn-outline-brand btn-modern" href="/agregar"><i class="bi bi-person-plus"></i><span> Crear Producto</a>
+              <a class="nav-link btn btn-outline-brand btn-modern" href="/agregar"><i class="bi bi-box-seam"></i><span> Crear Producto</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link btn btn-outline-brand btn-modern" href="/listar"><i class="bi bi-people"></i><span> Listar Productos</a>
+              <a class="nav-link btn btn-outline-brand btn-modern" href="/listar"><i class="bi bi-card-list"></i><span> Listar Productos</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link btn btn-outline-brand btn-modern" href="/ventas"><i class="bi bi-box-seam"></i><span> Crear Venta</a>
+              <a class="nav-link btn btn-outline-brand btn-modern" href="/ventas"><i class="bi bi-cart-plus"></i><span> Crear Venta</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link btn btn-outline-brand btn-modern" href="/ventas_calendario"><i class="bi bi-card-list"></i><span> Listar Ventas</a>
+              <a class="nav-link btn btn-outline-brand btn-modern" href="/ventas_calendario"><i class="bi bi-receipt"></i><span> Listar Ventas</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link btn btn-outline-brand btn-modern" href="/crear_usuario"><i class="bi bi-cart-plus"></i><span> Crear Usuario</a>
+              <a class="nav-link btn btn-outline-brand btn-modern" href="/productos_vendidos"><i class="bi bi-cart-check me-1"></i><span> Productos Vendidos</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link btn btn-outline-brand btn-modern" href="/listar_usuarios"><i class="bi bi-receipt"></i><span> Listar Usuarios</a>
+              <a class="nav-link btn btn-outline-brand btn-modern" href="/crear_usuario"><i class="bi bi-person-plus"></i><span> Crear Usuario</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link btn btn-outline-brand btn-modern" href="/listar_usuarios"><i class="bi bi-people"></i><span> Listar Usuarios</a>
             </li>
           {% elif session.rol_id == 2 %}
             <li class="nav-item">
@@ -141,6 +144,17 @@
             <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-modern">
               <i class="bi bi-box-arrow-right"></i>
             </a>
+            <!-- Controles de tamaño de fuente -->
+            <button id="decrease-font" type="button"
+                    class="btn btn-outline-light btn-modern mx-1"
+                    title="Disminuir fuente">
+              A–
+            </button>
+            <button id="increase-font" type="button"
+                    class="btn btn-outline-light btn-modern"
+                    title="Aumentar fuente">
+              A+
+            </button>
           </div>
         {% endif %}
       </div>
@@ -194,6 +208,36 @@
         }).render();
       }
     });
+    (function(){
+      const container = document.querySelector('main .container');
+      if (!container) return;
+
+      let level = 0;
+      const max = 5, min = -3;
+      function updateFont(){
+        // cada nivel suma/resta un 10% sobre el tamaño base del container
+        container.style.fontSize = (1 + level * 0.1) + 'rem';
+      }
+
+      // Al cargar, aplico guardado
+      level = parseInt(localStorage.getItem('fontLevel'), 10) || 0;
+      updateFont();
+
+      document.getElementById('increase-font').addEventListener('click', () => {
+        if (level < max) {
+          level++;
+          updateFont();
+          localStorage.setItem('fontLevel', level);
+        }
+      });
+      document.getElementById('decrease-font').addEventListener('click', () => {
+        if (level > min) {
+          level--;
+          updateFont();
+          localStorage.setItem('fontLevel', level);
+        }
+      });
+    })();
   </script>
 
   {% block scripts %}{% endblock %}
