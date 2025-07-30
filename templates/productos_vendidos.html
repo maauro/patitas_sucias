@@ -1,0 +1,72 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="card shadow-sm">
+    <!-- Cabecera con degradado -->
+    <div class="card-header d-flex justify-content-between align-items-center text-white" style="background: linear-gradient(to right, #005258, #000000);">
+      <h5 class="mb-0"><i class="bi bi-cart-check me-2"></i>Productos Vendidos</h5>
+      <form id="searchForm" method="get" class="d-flex" style="max-width: 300px;">
+        <div class="input-group">
+          <span class="input-group-text bg-white border-0"><i class="bi bi-search"></i></span>
+          <input
+            list="productosList"
+            id="search"
+            name="search"
+            class="form-control border-0"
+            placeholder="Buscar..."
+            value="{{ search or '' }}"
+          >
+        </div>
+      </form>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">Código</th>
+              <th scope="col">Nombre</th>
+              <th scope="col" class="text-center">Cantidad</th>
+              <th scope="col" class="text-end">Total Vendido</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in productos %}
+            <tr>
+              <td>{{ p.codigo }}</td>
+              <td>{{ p.nombre|safe }}</td>
+              <td class="text-center">{{ p.cantidad }}</td>
+              <td class="text-end">${{ p.total|round(2)|formato_precio }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="d-flex justify-content-center my-3">
+        <nav>
+          <ul class="pagination mb-0">
+            <li class="page-item {% if page == 1 %}disabled{% endif %}"><a class="page-link" href="{{ url_for('productos_vendidos', page=page-1, search=search) }}">« Anterior</a></li>
+            {% for num in range(1, pages+1) %}
+            <li class="page-item {% if num == page %}active{% endif %}"><a class="page-link" href="{{ url_for('productos_vendidos', page=num, search=search) }}">{{ num }}</a></li>
+            {% endfor %}
+            <li class="page-item {% if page == pages %}disabled{% endif %}"><a class="page-link" href="{{ url_for('productos_vendidos', page=page+1, search=search) }}">Siguiente »</a></li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </div>
+</div>
+
+<datalist id="productosList">
+  {% for nombre in all_names %}
+  <option value="{{ nombre }}">
+  {% endfor %}
+</datalist>
+
+<script>
+  document.getElementById('search').addEventListener('change', function(){
+    document.getElementById('searchForm').submit();
+  });
+</script>
+{% endblock %}
