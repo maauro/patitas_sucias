@@ -174,7 +174,8 @@
               accordionHtml += '<p>No hay detalle disponible.</p>';
             }
             // Botón para colapsar el detalle y volver al resumen
-            accordionHtml += '<button type="button" class="btn btn-outline-secondary btn-sm mt-2" data-bs-toggle="collapse" data-bs-target="#collapse' + venta.id + '">Volver a resumen</button>';
+            accordionHtml += '<button type="button" class="btn btn-outline-secondary btn-sm mt-2" data-bs-toggle="collapse" data-bs-target="#collapse' + venta.id + '">Volver a resumen</button> ';
+            accordionHtml += '<button type="button" class="btn btn-outline-danger btn-sm mt-2" onclick="eliminarVenta(' + venta.id + ')">Eliminar Venta</button> ';
             accordionHtml += '</div></div></div>';
           });
           accordionHtml += '</div>';
@@ -187,5 +188,32 @@
       
       calendar.render();
     });
+
+    function eliminarVenta(id) {
+      Swal.fire({
+        title: '¿Estás seguro?',
+        text: 'No podrás revertir esto.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = `/eliminar_venta/${id}`;
+          {% if csrf_token %}
+          const csrfInput = document.createElement('input');
+          csrfInput.name = 'csrf_token'; csrfInput.type = 'hidden';
+          csrfInput.value = '{{ csrf_token() }}';
+          form.appendChild(csrfInput);
+          {% endif %}
+          document.body.appendChild(form);
+          form.submit();
+        }
+      });
+    }
   </script>
 {% endblock %}

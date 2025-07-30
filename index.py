@@ -7,7 +7,8 @@ from sqlalchemy import func, extract # type: ignore
 from sqlalchemy.exc import IntegrityError # type: ignore
 import subprocess
 import os
-import json
+import json, math
+from markupsafe import Markup # type: ignore
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -34,7 +35,21 @@ class Producto(db.Model):
     nombre = db.Column(db.String(100), nullable=False)
     precio = db.Column(db.Float, nullable=False)
     stock = db.Column(db.Integer, nullable=False)
+    descuento = db.Column(db.Integer, nullable=False, default=0)
     tiene_codigo = db.Column(db.Boolean, nullable=False, default=True)
+
+    def valor_inventario(self):
+        """
+        Retorna el valor total en inventario de este producto:
+        (precio unitario ajustado por descuento) × stock.
+        Sólo aplica el descuento si self.descuento > 0.
+        """
+        precio_unitario = (
+            self.precio * (100 - self.descuento) / 100
+            if self.descuento > 0
+            else self.precio
+        )
+        return precio_unitario * self.stock
 
 # Modelo de Venta para guardar la venta completa
 class Venta(db.Model):
@@ -134,9 +149,14 @@ def inicio():
           )
           .scalar()
     )
+    
+    productos = Producto.query.all()
 
+    total_mercaderia = sum(p.valor_inventario() for p in productos)
+    
     total_general_fmt = f"{int(total_general):,}".replace(",", ".")
     total_usuario_fmt = f"{int(total_usuario):,}".replace(",", ".")
+    total_mercaderia_fmt = f"{int(total_mercaderia):,}".replace(",", ".")
 
     # Nombre del mes en español
     MESES_ES = {
@@ -155,6 +175,7 @@ def inicio():
         anio_actual=anio_actual,
         total_general=total_general_fmt,
         total_usuario=total_usuario_fmt,
+        total_mercaderia=total_mercaderia_fmt,
         productos_criticos=productos_criticos
     )
 
@@ -174,6 +195,62 @@ def generar_codigo_automatico():
         next_code += 1
 
     return str(next_code)
+
+@app.route('/productos_vendidos')
+def productos_vendidos():
+    # 1) Parámetros de página y búsqueda
+    page   = request.args.get('page',   1,   type=int)
+    search = request.args.get('search', '',  type=str)
+
+    # 2) Agregarizar ventas
+    resumen = {}
+    for venta in Venta.query.all():
+        detalles = json.loads(venta.detalles or '{}')
+        for codigo, info in detalles.items():
+            nombre = info.get('nombre','')
+            cantidad = info.get('cantidad',0)
+            precio   = info.get('precio',  0.0)
+            if codigo not in resumen:
+                resumen[codigo] = {
+                    'codigo':  codigo,
+                    'nombre':  nombre,
+                    'cantidad': 0,
+                    'total':    0.0
+                }
+            resumen[codigo]['cantidad'] += cantidad
+            resumen[codigo]['total']    += precio * cantidad
+
+    # 3) Convertir a lista y filtrar por búsqueda
+    productos = list(resumen.values())
+    if search:
+        productos = [
+            p for p in productos
+            if search.lower() in p['nombre'].lower()
+        ]
+
+    # 4) Ordenar por nombre
+    productos.sort(key=lambda p: p['nombre'])
+
+    # 5) Paginación
+    per_page = 10
+    total    = len(productos)
+    pages    = math.ceil(total / per_page)
+    start    = (page - 1) * per_page
+    end      = start + per_page
+    productos_page = productos[start:end]
+
+    # 6) Lista de nombres para autocomplete
+    all_names = [p['nombre'] for p in productos]
+
+    # 7) Renderizar
+    return render_template(
+        'productos_vendidos.html',
+        productos=productos_page,
+        page=page,
+        pages=pages,
+        search=search,
+        all_names=all_names
+    )
 
 @app.route('/agregar', methods=['GET', 'POST'])
 @admin_required
@@ -263,6 +340,7 @@ def ventas():
             return redirect(url_for('ventas'))
         
         if action == 'agregar':
+            tiene_dscto = False
             producto = Producto.query.filter_by(codigo=codigo_key).first()
             if not producto:
                 flash('Producto no encontrado', 'danger')
@@ -273,16 +351,26 @@ def ventas():
                 flash('No puede agregar más unidades de este producto, excede el stock disponible.', 'warning')
                 return redirect(url_for('ventas'))
             
+            if producto.descuento > 0:
+                tiene_dscto = True
+                precio = aplicar_descuento(producto.precio, producto.descuento)
+                nombre = Markup(f"{producto.nombre} <b>({producto.descuento}% Dscto.)</b>")
+            else:
+                precio = producto.precio
+                nombre = producto.nombre
+            
             # Si el producto ya está en el carrito, se suma la cantidad; de lo contrario, se agrega
             if codigo_key in carrito:
                 carrito[codigo_key]['cantidad'] += cantidad
             else:
                 carrito[codigo_key] = {
-                    'nombre': producto.nombre,
-                    'precio': producto.precio,
-                    'cantidad': cantidad
+                    'nombre': nombre,
+                    'precio_sin_dscto': producto.precio,
+                    'precio' : precio,
+                    'cantidad': cantidad,
+                    'dscto' : tiene_dscto
                 }
-            flash('Producto agregado al carrito', 'success')
+            flash('Producto agregado al carritooooo', 'success')
 
         elif action == 'finalizar':
             # Validar nuevamente que cada producto del carrito tenga suficiente stock
@@ -323,12 +411,21 @@ def ventas():
         carrito_lista.append({
             'codigo': codigo,
             'nombre': datos['nombre'],
+            'precio_sin_dscto': datos['precio_sin_dscto'],
             'precio': datos['precio'],
             'cantidad': datos['cantidad'],
+            'dscto': datos['dscto'],
             'subtotal': subtotal
         })
 
     return render_template('ventas.html', carrito=carrito_lista, total=total)
+
+def aplicar_descuento(precio, descuento):
+    if not (0 <= descuento <= 100):
+        raise ValueError("El descuento debe estar entre 0 y 100")
+    # Calculamos el porcentaje restante y lo aplicamos
+    precio_final = precio * (100 - descuento) / 100
+    return precio_final
 
 @app.route('/eliminar_del_carrito/<codigo>', methods=['POST'])
 def eliminar_del_carrito(codigo):
@@ -404,9 +501,6 @@ def ventas_realizadas():
     
     return render_template('ventas_realizadas.html', ventas_por_fecha=ventas_por_fecha)
 
-    
-    return render_template('ventas_realizadas.html', ventas_por_fecha=ventas_por_fecha)
-
 @app.route('/editar/<int:id>', methods=['GET', 'POST'])
 @admin_required
 def editar_producto(id):
@@ -415,23 +509,30 @@ def editar_producto(id):
         nombre = request.form['nombre']
         precio = request.form['precio']
         stock = request.form['stock']
+        descuento = request.form['descuento']
 
         # Validación: convertir a número y verificar que sean mayores a 0
         try:
             precio_val = float(precio)
             stock_val = int(stock)
+            descuento_val = int(descuento)
         except ValueError:
             flash('El precio y el stock deben ser valores numéricos válidos.', 'danger')
-            return redirect(url_for('editar_producto', id=id))
+            return redirect(url_for('listar_productos'))
         
-        if precio_val <= 0 or stock_val <= 0:
-            flash('El precio y el stock deben ser mayores a 0.', 'danger')
-            return redirect(url_for('editar_producto', id=id))
+        if precio_val < 0 or stock_val < 0 or descuento_val < 0:
+            flash('El precio, stock y descuento deben ser mayores a 0.', 'danger')
+            return redirect(url_for('listar_productos'))
+        
+        if descuento_val > 100:
+            flash('El descuento no debe ser mayores a 100.', 'danger')
+            return redirect(url_for('listar_productos'))
         
         # Actualizamos solo los campos permitidos
         producto.nombre = nombre
         producto.precio = precio_val
         producto.stock = stock_val
+        producto.descuento = descuento_val
         db.session.commit()
         flash('Producto actualizado correctamente', 'success')
         return redirect(url_for('listar_productos'))
@@ -660,6 +761,27 @@ def ventas_calendario():
         calendar_data[fecha_str].append(sale_data)
     
     return render_template('ventas_calendario.html', calendar_data=calendar_data)
+
+@app.route('/eliminar_venta/<int:venta_id>', methods=['POST'])
+@admin_required
+def eliminar_venta(venta_id):
+    venta = Venta.query.get_or_404(venta_id)
+    detalles = json.loads(venta.detalles)
+
+    for codigo, info in detalles.items():
+        cantidad = info.get('cantidad', 0)
+        producto = Producto.query.filter_by(codigo=codigo).first()
+        if producto:
+            producto.stock += cantidad
+            db.session.add(producto)
+        else:
+            app.logger.warning(f"Producto {codigo} no encontrado al eliminar venta {venta_id}")
+    
+    db.session.delete(venta)
+    db.session.commit()
+
+    flash(f"Venta {venta_id} eliminada y stock repuesto.", "success")
+    return redirect(url_for('ventas_calendario'))
 
 @app.route('/productos_mas_vendidos')
 def productos_mas_vendidos():
