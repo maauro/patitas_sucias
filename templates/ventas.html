@@ -104,9 +104,9 @@
         </table>
       </div>
       <div class="d-flex justify-content-end gap-2 mt-2">
-        <form method="POST">
+        <form id="finalizarForm" method="POST">
           <input type="hidden" name="action" value="finalizar">
-          <button id="finalizarVenta" type="submit" class="btn btn-primary">Finalizar Venta</button>
+          <button id="finalizarVenta" type="button" class="btn btn-primary" onclick="confirmFinalize()">Finalizar Venta</button>
         </form>
         <form method="POST" action="/vaciar_carrito">
           <button type="submit" class="btn btn-outline-danger">Vaciar Carrito</button>
@@ -237,12 +237,37 @@
     document.getElementById("ventaForm").submit();
   }
 
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-      e.preventDefault();                      // evita cualquier otro submit
-      const btn = document.getElementById('finalizarVenta');
-      if (btn) btn.click();                   // dispara el click aunque el foco no esté en el form
-    }
+  document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener("keydown", function(e) {
+      if (e.key !== "Enter") return;
+
+      // Si el foco está en el input de código, lo ignoramos
+      if (document.activeElement.id === "venta_codigo") {
+        return;
+      }
+
+      e.preventDefault();
+      const btn = document.getElementById("finalizarVenta");
+      if (btn) btn.click();
+    });
   });
+
+  function confirmFinalize() {
+    Swal.fire({
+      title: '¿Finalizar venta?',
+      text: 'Una vez finalizada, no podrás agregar más productos.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#aaa',
+      confirmButtonText: 'Sí, finalizar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // si confirma, envía el formulario
+        document.getElementById('finalizarForm').submit();
+      }
+    });
+  }
 </script>
 {% endblock %}
