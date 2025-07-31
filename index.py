@@ -1,11 +1,10 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session  # type: ignore
 from flask_sqlalchemy import SQLAlchemy  # type: ignore
 from datetime import datetime
-from zoneinfo import ZoneInfo
+import zoneinfo
 from functools import wraps
 from sqlalchemy import func, extract # type: ignore
 from sqlalchemy.exc import IntegrityError # type: ignore
-import subprocess
 import os
 import json, math
 from markupsafe import Markup # type: ignore
